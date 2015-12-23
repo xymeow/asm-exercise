@@ -14,10 +14,8 @@ includelib	\masm32\lib\user32.lib
 .const
 res db 'the result is %lf',0
 error db 'Error: x < 0 !',0
-output db 'x = %f, a1 = %f, a2 = %f, a3 = %f',10,0
 scan db '%f%f%f%f',0
 inputs db 'please input x, a1, a2, a3',10,0
-e dq 2.71828182845904523
 
 .data
 x dd ?
@@ -26,6 +24,10 @@ a1 dd ?
 a2 dd ?
 a3 dd ?
 result dq ?
+xlge dq ?
+temp dq ?
+temp2 dq ?
+temp3 dq ?
 
 .code
 start:
@@ -49,13 +51,10 @@ err:
 		invoke crt_printf, addr error
 		ret
 el:
-		
 		fld x
 		fsqrt
 		fmul a1
 		fstp result
-		;invoke crt_printf,  addr res, result
-		;invoke	MessageBox,NULL,addr buf,addr cp,MB_OK
 		fld x
 		fldz
 		fcompp 
@@ -64,28 +63,56 @@ el:
 		jne l1
 		fld1
 		jmp l2
-l1:		fld e
-ll1:	fld x2
-		fld1
-		fcompp 
+l1:		
+		fldl2e
+		fmul x
+		fst xlge
+		frndint
+		fstp temp2
+		fld temp2
+		fld xlge
+		fsub ST(0), ST(1)
+		fst temp3
+		ftst
 		fnstsw ax
 		sahf
-		jb loop1
-		jmp l2
-loop1:
-		fmul e
-		fld x2
+		jb nega
+		;>0, st0 = frac st1 = int
+		f2xm1
 		fld1
-		fsubp ST(1), ST(0)
-		fstp x2
-		jmp ll1
+		fadd ST(0), ST(1)
+		fstp temp
+		fcomp
+		fld temp
+		fscale 
+		fstp temp
+		fcomp
+		fld temp
+		jmp l2
+nega:   
+		fld1
+		fadd ST(0), ST(1);st0 = frac
+		fstp temp
+		fcomp
+		fld1
+		fsub ST(1), ST(0)
+		fcomp
+		fld temp
+		f2xm1
+		fld1
+		fadd ST(0), ST(1)
+		fstp temp
+		fcomp
+		fld temp
+		fscale
+		fstp temp
+		fcomp
+		fld temp
 l2:
 		fmul a2
 		fld result
 		fadd ST(0), ST(1)
 		fstp result
-		;invoke crt_printf, addr res, result
-		;invoke	MessageBox,NULL,addr buf,addr cp,MB_OK
 		fcomp
 		fld x
 		fsin
